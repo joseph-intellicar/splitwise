@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CATEGORIES, DEFAULT_CATEGORY_ID } from '@/domain/categories'
 import {
   canSaveDraft,
+  draftFromExpense,
   draftShares,
   expenseFromDraft,
   hasOtherSharer,
@@ -22,7 +23,7 @@ import {
 } from '@/domain/expenseDraft'
 import { formatPaise, parseRupees } from '@/domain/money'
 import { personName } from '@/domain/people'
-import type { AppData, Group, PersonId } from '@/domain/types'
+import type { AppData, Expense, Group, PersonId } from '@/domain/types'
 import { CURRENT_USER_ID } from '@/domain/types'
 import { useAppStore } from '@/store/appStore'
 
@@ -47,9 +48,20 @@ function pickerName(data: AppData, personId: PersonId) {
   return personId === CURRENT_USER_ID ? 'You' : personName(data, personId)
 }
 
-function ExpenseForm({ data, initialGroup, onDone }: { data: AppData; initialGroup: Group; onDone: () => void }) {
+function ExpenseForm({
+  data,
+  initialGroup,
+  expense,
+  onDone,
+}: {
+  data: AppData
+  initialGroup: Group
+  expense?: Expense
+  onDone: () => void
+}) {
   const addExpense = useAppStore((state) => state.addExpense)
-  const [draft, setDraft] = useState(() => newDraft(initialGroup))
+  const updateExpense = useAppStore((state) => state.updateExpense)
+  const [draft, setDraft] = useState(() => (expense ? draftFromExpense(expense) : newDraft(initialGroup)))
   const group = data.groups.find((g) => g.id === draft.groupId) ?? initialGroup
   const today = todayIso()
   const shares = draftShares(draft, group)
@@ -79,8 +91,15 @@ function ExpenseForm({ data, initialGroup, onDone }: { data: AppData; initialGro
   function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (!canSaveDraft(draft, group, today)) return
-    addExpense(expenseFromDraft(draft, group))
-    toast.success(`Expense added to ${group.name}`)
+    if (expense) {
+      // The Group can't change once an Expense exists.
+      const { groupId: _groupId, ...changes } = expenseFromDraft(draft, group)
+      updateExpense(expense.id, changes)
+      toast.success('Expense updated')
+    } else {
+      addExpense(expenseFromDraft(draft, group))
+      toast.success(`Expense added to ${group.name}`)
+    }
     onDone()
   }
 
@@ -88,7 +107,10 @@ function ExpenseForm({ data, initialGroup, onDone }: { data: AppData; initialGro
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <Label htmlFor="expense-group">Group</Label>
-        <Select value={draft.groupId} onValueChange={(groupId) => setDraft(newDraft(data.groups.find((g) => g.id === groupId)!))}>
+        <Select
+          value={draft.groupId}
+          disabled={!!expense}
+          onValueChange={(groupId) => setDraft(newDraft(data.groups.find((g) => g.id === groupId)!))}>
           <SelectTrigger id="expense-group" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -303,25 +325,30 @@ function ExpenseForm({ data, initialGroup, onDone }: { data: AppData; initialGro
   )
 }
 
-export function AddExpenseDialog({
+/** Adds a new Expense, or edits `expense` when one is given. */
+export function ExpenseDialog({
   open,
   onOpenChange,
   group,
+  expense,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   group: Group
+  expense?: Expense
 }) {
   const data = useAppStore((state) => state.data)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add an expense</DialogTitle>
-          <DialogDescription>Record a shared cost and how it's split.</DialogDescription>
+          <DialogTitle>{expense ? 'Edit expense' : 'Add an expense'}</DialogTitle>
+          <DialogDescription>
+            {expense ? 'Change any detail; the group stays the same.' : "Record a shared cost and how it's split."}
+          </DialogDescription>
         </DialogHeader>
         {/* Remounted on every open, so each expense starts from a fresh draft. */}
-        {open && <ExpenseForm data={data} initialGroup={group} onDone={() => onOpenChange(false)} />}
+        {open && <ExpenseForm data={data} initialGroup={group} expense={expense} onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   )

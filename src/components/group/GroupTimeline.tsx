@@ -1,14 +1,28 @@
-import { Banknote, ChevronDown } from 'lucide-react'
+import { Banknote, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { EffectLabel } from '@/components/Amounts'
 import { CategoryIcon } from '@/components/icons'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { categoryLabel } from '@/domain/categories'
 import { expenseEffect } from '@/domain/balances'
 import { formatPaise } from '@/domain/money'
 import { personName, shortName } from '@/domain/people'
 import type { TimelineMonth } from '@/domain/timeline'
 import type { AppData, Expense, Settlement } from '@/domain/types'
+import { useAppStore } from '@/store/appStore'
 import { cn } from '@/lib/utils'
 
 const dayMonth = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' })
@@ -25,15 +39,39 @@ function DateStamp({ date }: { date: string }) {
   )
 }
 
-function ExpenseRow({ data, expense }: { data: AppData; expense: Expense }) {
+/** A Delete button that asks first; deleting is permanent. */
+function ConfirmDeleteButton({ title, description, onConfirm }: { title: string; description: string; onConfirm: () => void }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Trash2 aria-hidden="true" />
+          Delete
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onConfirm}>
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+const longDate = (date: string) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+
+function ExpenseRow({ data, expense, onEdit }: { data: AppData; expense: Expense; onEdit: (expense: Expense) => void }) {
+  const deleteExpense = useAppStore((state) => state.deleteExpense)
   const [open, setOpen] = useState(false)
   const detailsId = `expense-${expense.id}`
-  const date = new Date(`${expense.date}T00:00:00Z`).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
 
   return (
     <li className="rounded-xl border bg-card text-card-foreground">
@@ -60,7 +98,7 @@ function ExpenseRow({ data, expense }: { data: AppData; expense: Expense }) {
         <div id={detailsId} className="border-t px-4 py-4 text-sm sm:pl-[6.5rem]">
           <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
             <dt className="text-muted-foreground">Date</dt>
-            <dd>{date}</dd>
+            <dd>{longDate(expense.date)}</dd>
             <dt className="text-muted-foreground">Category</dt>
             <dd>{categoryLabel(expense.categoryId)}</dd>
             <dt className="text-muted-foreground">Paid by</dt>
@@ -85,30 +123,104 @@ function ExpenseRow({ data, expense }: { data: AppData; expense: Expense }) {
               </>
             )}
           </dl>
+          <div className="mt-4 flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => onEdit(expense)}>
+              <Pencil aria-hidden="true" />
+              Edit
+            </Button>
+            <ConfirmDeleteButton
+              title={`Delete “${expense.description}”?`}
+              description="This removes the expense for everyone in the group and updates their balances. It can't be undone."
+              onConfirm={() => {
+                deleteExpense(expense.id)
+                toast.success('Expense deleted')
+              }}
+            />
+          </div>
         </div>
       )}
     </li>
   )
 }
 
-function SettlementRow({ data, settlement }: { data: AppData; settlement: Settlement }) {
+function SettlementRow({
+  data,
+  settlement,
+  onEdit,
+}: {
+  data: AppData
+  settlement: Settlement
+  onEdit: (settlement: Settlement) => void
+}) {
+  const deleteSettlement = useAppStore((state) => state.deleteSettlement)
+  const [open, setOpen] = useState(false)
+  const detailsId = `settlement-${settlement.id}`
   const to = shortName(data, settlement.toId)
+  const summary = `${shortName(data, settlement.fromId)} paid ${to === 'You' ? 'you' : to}`
+
   return (
-    <li className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground sm:gap-4 sm:px-4">
-      <DateStamp date={settlement.date} />
-      <span className="flex size-10 shrink-0 items-center justify-center">
-        <Banknote className="size-5 text-primary" aria-hidden="true" />
-      </span>
-      <span>
-        {shortName(data, settlement.fromId)} paid {to === 'You' ? 'you' : to}{' '}
-        <span className="font-medium text-foreground tabular-nums">{formatPaise(settlement.amount)}</span>
-      </span>
+    <li className="rounded-xl">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={detailsId}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring sm:gap-4 sm:px-4"
+      >
+        <DateStamp date={settlement.date} />
+        <span className="flex size-10 shrink-0 items-center justify-center">
+          <Banknote className="size-5 text-primary" aria-hidden="true" />
+        </span>
+        <span className="flex-1">
+          {summary} <span className="font-medium text-foreground tabular-nums">{formatPaise(settlement.amount)}</span>
+        </span>
+        <ChevronDown className={cn('size-4 shrink-0 transition-transform', open && 'rotate-180')} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div id={detailsId} className="mx-3 mb-2 rounded-xl border bg-card px-4 py-4 text-sm sm:ml-[6.5rem]">
+          <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
+            <dt className="text-muted-foreground">Paid by</dt>
+            <dd>{personName(data, settlement.fromId)}</dd>
+            <dt className="text-muted-foreground">Paid to</dt>
+            <dd>{personName(data, settlement.toId)}</dd>
+            <dt className="text-muted-foreground">Amount</dt>
+            <dd className="tabular-nums">{formatPaise(settlement.amount)}</dd>
+            <dt className="text-muted-foreground">Date</dt>
+            <dd>{longDate(settlement.date)}</dd>
+          </dl>
+          <div className="mt-4 flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => onEdit(settlement)}>
+              <Pencil aria-hidden="true" />
+              Edit
+            </Button>
+            <ConfirmDeleteButton
+              title="Delete this payment?"
+              description={`${summary} ${formatPaise(settlement.amount)}. Deleting it brings back the debt it paid off. It can't be undone.`}
+              onConfirm={() => {
+                deleteSettlement(settlement.id)
+                toast.success('Payment deleted')
+              }}
+            />
+          </div>
+        </div>
+      )}
     </li>
   )
 }
 
 /** The full history, never folded, grouped by month. */
-export function GroupTimeline({ data, months }: { data: AppData; months: TimelineMonth[] }) {
+export function GroupTimeline({
+  data,
+  months,
+  onEditExpense,
+  onEditSettlement,
+}: {
+  data: AppData
+  months: TimelineMonth[]
+  onEditExpense: (expense: Expense) => void
+  onEditSettlement: (settlement: Settlement) => void
+}) {
   if (months.length === 0) {
     return <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No expenses yet.</p>
   }
@@ -122,9 +234,9 @@ export function GroupTimeline({ data, months }: { data: AppData; months: Timelin
           <ul className="flex flex-col gap-2">
             {month.items.map((item) =>
               item.kind === 'expense' ? (
-                <ExpenseRow key={item.record.id} data={data} expense={item.record} />
+                <ExpenseRow key={item.record.id} data={data} expense={item.record} onEdit={onEditExpense} />
               ) : (
-                <SettlementRow key={item.record.id} data={data} settlement={item.record} />
+                <SettlementRow key={item.record.id} data={data} settlement={item.record} onEdit={onEditSettlement} />
               ),
             )}
           </ul>

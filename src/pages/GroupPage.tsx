@@ -2,13 +2,15 @@ import { Plus, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 
-import { AddExpenseDialog } from '@/components/expense/AddExpenseDialog'
+import { ExpenseDialog } from '@/components/expense/ExpenseDialog'
 import { GroupBalances } from '@/components/group/GroupBalances'
 import { GroupTimeline } from '@/components/group/GroupTimeline'
 import { GroupTypeIcon } from '@/components/icons'
+import { SettleUpDialog } from '@/components/settlement/SettleUpDialog'
 import { Button } from '@/components/ui/button'
 import { groupDebts } from '@/domain/balances'
 import { groupTimeline } from '@/domain/timeline'
+import type { Expense, Settlement } from '@/domain/types'
 import { useAppStore } from '@/store/appStore'
 
 import { NotFoundPage } from './NotFoundPage'
@@ -18,6 +20,12 @@ export function GroupPage() {
   const data = useAppStore((state) => state.data)
   const group = data.groups.find((g) => g.id === groupId)
   const [addingExpense, setAddingExpense] = useState(false)
+  const [settlingUp, setSettlingUp] = useState(false)
+  // Records being edited are kept after closing so the dialogs don't flip to "Add" while they animate out.
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null)
+  const [editingPayment, setEditingPayment] = useState(false)
 
   if (!group) return <NotFoundPage />
 
@@ -40,10 +48,10 @@ export function GroupPage() {
             <Plus aria-hidden="true" />
             Add an expense
           </Button>
-          {/* Settle up and group settings are wired up by their own tickets. */}
-          <Button variant="outline" disabled>
+          <Button variant="outline" onClick={() => setSettlingUp(true)}>
             Settle up
           </Button>
+          {/* Group settings are wired up by their own ticket. */}
           <Button variant="ghost" size="icon" aria-label="Group settings" disabled>
             <Settings aria-hidden="true" />
           </Button>
@@ -52,9 +60,33 @@ export function GroupPage() {
 
       <GroupBalances data={data} group={group} debts={groupDebts(data, group.id)} />
 
-      <GroupTimeline data={data} months={groupTimeline(data, group.id)} />
+      <GroupTimeline
+        data={data}
+        months={groupTimeline(data, group.id)}
+        onEditExpense={(expense) => {
+          setEditingExpense(expense)
+          setEditing(true)
+        }}
+        onEditSettlement={(settlement) => {
+          setEditingSettlement(settlement)
+          setEditingPayment(true)
+        }}
+      />
 
-      <AddExpenseDialog open={addingExpense} onOpenChange={setAddingExpense} group={group} />
+      <ExpenseDialog open={addingExpense} onOpenChange={setAddingExpense} group={group} />
+      <ExpenseDialog
+        open={editing}
+        onOpenChange={setEditing}
+        group={group}
+        expense={editingExpense ?? undefined}
+      />
+      <SettleUpDialog open={settlingUp} onOpenChange={setSettlingUp} group={group} />
+      <SettleUpDialog
+        open={editingPayment}
+        onOpenChange={setEditingPayment}
+        group={group}
+        settlement={editingSettlement ?? undefined}
+      />
     </div>
   )
 }

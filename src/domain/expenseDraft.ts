@@ -98,6 +98,26 @@ export function switchToExact(draft: ExpenseDraft, group: Group): ExpenseDraft {
   return { ...draft, splitMethod: 'exact', exactTexts }
 }
 
+/** An existing Expense back as a draft: its Payer and sharers ticked, its amounts as typed text. */
+export function draftFromExpense(expense: Expense): ExpenseDraft {
+  const sharerIds = expense.shares.map((s) => s.personId)
+  const exactTexts: Record<PersonId, string> = {}
+  for (const share of expense.shares) exactTexts[share.personId] = paiseToInputText(share.amount)
+  return {
+    groupId: expense.groupId,
+    description: expense.description,
+    amountText: paiseToInputText(expense.amount),
+    categoryId: expense.categoryId,
+    date: expense.date,
+    notes: expense.notes ?? '',
+    payerId: expense.payerId,
+    involvedIds: [...new Set([expense.payerId, ...sharerIds])],
+    splitMethod: expense.splitMethod,
+    splitIds: sharerIds,
+    exactTexts,
+  }
+}
+
 /** The Expense record a valid draft becomes (without id and createdAt). */
 export function expenseFromDraft(draft: ExpenseDraft, group: Group): Omit<Expense, 'id' | 'createdAt'> {
   const notes = draft.notes.trim()

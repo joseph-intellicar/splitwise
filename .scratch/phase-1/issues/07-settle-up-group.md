@@ -8,12 +8,12 @@ References: [spec](../spec.md) → Screens → Settle up, Rules → Settlements,
 
 **Status:** ready-for-agent
 
-- [ ] "Settle up" on the Group page opens a dialog asking who paid → whom → how much, plus a date.
-- [ ] Pre-fill: your largest Debt you owe in the Group ("You paid [them] ₹[amount]"); otherwise the largest someone owes you ("[They] paid you ₹[amount]"); both sides empty if you're Settled Up in the Group.
-- [ ] One-tap suggestion chips list each of your non-zero Debts in the Group and fill both people and the amount.
-- [ ] "Record another payment" lets the user pick any two current members; Former Members can't be chosen.
-- [ ] Any positive amount is accepted, including partial and more than owed (which reverses the Debt); date defaults to today, no future dates; no payment method.
-- [ ] Saved Settlements appear as slim rows and update balances immediately; expanding one shows who paid whom, amount, date, and Edit / Delete.
-- [ ] Edit reuses the dialog pre-filled (Group locked); Delete asks for confirmation and is permanent.
-- [ ] Saves, edits and deletes show a short toast.
-- [ ] Playwright test: settle a Debt in a Group and see the balance card reach Settled Up.
+- [x] "Settle up" on the Group page opens a dialog asking who paid → whom → how much, plus a date.
+- [x] Pre-fill: your largest Debt you owe in the Group ("You paid [them] ₹[amount]"); otherwise the largest someone owes you ("[They] paid you ₹[amount]"); both sides empty if you're Settled Up in the Group.
+- [x] One-tap suggestion chips list each of your non-zero Debts in the Group and fill both people and the amount.
+- [x] "Record another payment" lets the user pick any two current members; Former Members can't be chosen.
+- [x] Any positive amount is accepted, including partial and more than owed (which reverses the Debt); date defaults to today, no future dates; no payment method.
+- [x] Saved Settlements appear as slim rows and update balances immediately; expanding one shows who paid whom, amount, date, and Edit / Delete.
+- [x] Edit reuses the dialog pre-filled (Group locked); Delete asks for confirmation and is permanent.
+- [x] Saves, edits and deletes show a short toast.
+- [x] Playwright test: settle a Debt in a Group and see the balance card reach Settled Up.

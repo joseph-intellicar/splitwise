@@ -1,5 +1,6 @@
 import {
   canSaveDraft,
+  draftFromExpense,
   draftShares,
   expenseFromDraft,
   hasOtherSharer,
@@ -170,5 +171,25 @@ describe('paiseToInputText', () => {
 describe('todayIso', () => {
   it('uses the local calendar date', () => {
     expect(todayIso(new Date(2026, 9, 1, 23, 30))).toBe('2026-10-01')
+  })
+})
+
+describe('draftFromExpense', () => {
+  it('round-trips an equal-split Expense', () => {
+    const original = expenseFromDraft(draft({ amountText: '100', splitIds: ['a', 'b'], notes: 'n' }), group)
+    const back = draftFromExpense({ ...original, id: 'x', createdAt: 't' })
+    expect(back).toMatchObject({ amountText: '100.00', payerId: 'me', involvedIds: ['me', 'a', 'b'], splitIds: ['a', 'b'], notes: 'n' })
+    expect(expenseFromDraft(back, group)).toEqual(original)
+  })
+
+  it('round-trips an Exact Expense whose Payer has no Share', () => {
+    const original = expenseFromDraft(
+      draft({ splitMethod: 'exact', amountText: '1179', exactTexts: { b: '1179' } }),
+      group,
+    )
+    const back = draftFromExpense({ ...original, id: 'x', createdAt: 't' })
+    expect(back).toMatchObject({ splitMethod: 'exact', involvedIds: ['me', 'b'], exactTexts: { b: '1179.00' } })
+    expect(canSaveDraft(back, group, today)).toBe(true)
+    expect(expenseFromDraft(back, group)).toEqual(original)
   })
 })
