@@ -6,16 +6,16 @@ test('sidebar lists Groups and Friends alphabetically, and the filter narrows bo
   await page.goto('/')
   const nav = sidebar(page)
   const groupLinks = nav.locator('a[href^="/groups/"]')
-  await expect(groupLinks).toHaveText(['Flat 4B', 'Goa Trip', 'Office Lunch'])
+  await expect(groupLinks).toHaveText([/^Flat 4B/, /^Goa Trip/, /^Office Lunch/])
   await expect(nav.locator('a[href^="/friends/"]')).toHaveCount(10)
-  await expect(nav.locator('a[href^="/friends/"]').first()).toHaveText('Ananya Nair')
+  await expect(nav.locator('a[href^="/friends/"]').first()).toHaveText(/^Ananya Nair/)
 
   await nav.getByRole('searchbox', { name: 'Filter groups and friends by name' }).fill('go')
-  await expect(groupLinks).toHaveText(['Goa Trip'])
+  await expect(groupLinks).toHaveText([/^Goa Trip/])
   await expect(nav.locator('a[href^="/friends/"]')).toHaveCount(0)
 
   await nav.getByRole('searchbox').fill('')
-  await nav.getByRole('link', { name: 'Goa Trip' }).click()
+  await nav.getByRole('link', { name: /^Goa Trip/ }).click()
   await expect(page).toHaveURL(/\/groups\/g1$/)
 })
 

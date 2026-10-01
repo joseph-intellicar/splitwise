@@ -8,9 +8,9 @@ References: [spec](../spec.md) → Screens → All expenses, Ordering, Balance c
 
 **Status:** ready-for-agent
 
-- [ ] Lists only Expenses and Settlements that involve the Current User; not-involved items are excluded.
-- [ ] Grouped by month in the agreed order; each row carries a small Group label.
-- [ ] Expense rows show the same effect wording as the Group page; Settlement rows show who paid whom and the amount.
-- [ ] Rows expand in place like on the Group page.
-- [ ] No search or filters.
-- [ ] Add an expense here opens the dialog with no Group selected; the user chooses a Group first.
+- [x] Lists only Expenses and Settlements that involve the Current User; not-involved items are excluded.
+- [x] Grouped by month in the agreed order; each row carries a small Group label.
+- [x] Expense rows show the same effect wording as the Group page; Settlement rows show who paid whom and the amount.
+- [x] Rows expand in place like on the Group page.
+- [x] No search or filters.
+- [x] Add an expense here opens the dialog with no Group selected; the user chooses a Group first.

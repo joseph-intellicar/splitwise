@@ -1,4 +1,6 @@
+import { isInvolved } from './balances'
 import type { AppData, Expense, Settlement } from './types'
+import { CURRENT_USER_ID } from './types'
 
 export type TimelineItem =
   | { kind: 'expense'; record: Expense }
@@ -39,6 +41,18 @@ export function groupTimeline(data: AppData, groupId: string): TimelineMonth[] {
     ...data.expenses.filter((e) => e.groupId === groupId).map((record) => ({ kind: 'expense' as const, record })),
     ...data.settlements
       .filter((s) => s.groupId === groupId)
+      .map((record) => ({ kind: 'settlement' as const, record })),
+  ])
+}
+
+/** Everything that involves the Current User, across all Groups, grouped by month. */
+export function allExpensesTimeline(data: AppData): TimelineMonth[] {
+  return groupByMonth([
+    ...data.expenses
+      .filter((e) => isInvolved(e, CURRENT_USER_ID))
+      .map((record) => ({ kind: 'expense' as const, record })),
+    ...data.settlements
+      .filter((s) => s.fromId === CURRENT_USER_ID || s.toId === CURRENT_USER_ID)
       .map((record) => ({ kind: 'settlement' as const, record })),
   ])
 }

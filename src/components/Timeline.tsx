@@ -68,15 +68,24 @@ function ConfirmDeleteButton({ title, description, onConfirm }: { title: string;
 const longDate = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 
+/** A small tag naming the Group a row belongs to. */
+function GroupLabel({ name }: { name: string }) {
+  return (
+    <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">{name}</span>
+  )
+}
+
 function ExpenseRow({
   data,
   expense,
   effect,
+  groupLabel,
   onEdit,
 }: {
   data: AppData
   expense: Expense
   effect: Effect
+  groupLabel?: string
   onEdit?: (expense: Expense) => void
 }) {
   const deleteExpense = useAppStore((state) => state.deleteExpense)
@@ -96,8 +105,11 @@ function ExpenseRow({
         <CategoryIcon categoryId={expense.categoryId} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-medium">{expense.description}</span>
-          <span className="truncate text-sm text-muted-foreground">
-            {shortName(data, expense.payerId)} paid {formatPaise(expense.amount)}
+          <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+            {groupLabel && <GroupLabel name={groupLabel} />}
+            <span className="truncate">
+              {shortName(data, expense.payerId)} paid {formatPaise(expense.amount)}
+            </span>
           </span>
         </span>
         <EffectLabel effect={effect} />
@@ -158,10 +170,12 @@ function ExpenseRow({
 function SettlementRow({
   data,
   settlement,
+  groupLabel,
   onEdit,
 }: {
   data: AppData
   settlement: Settlement
+  groupLabel?: string
   onEdit?: (settlement: Settlement) => void
 }) {
   const deleteSettlement = useAppStore((state) => state.deleteSettlement)
@@ -183,8 +197,11 @@ function SettlementRow({
         <span className="flex size-10 shrink-0 items-center justify-center">
           <Banknote className="size-5 text-primary" aria-hidden="true" />
         </span>
-        <span className="flex-1">
-          {summary} <span className="font-medium text-foreground tabular-nums">{formatPaise(settlement.amount)}</span>
+        <span className="flex flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+          <span>
+            {summary} <span className="font-medium text-foreground tabular-nums">{formatPaise(settlement.amount)}</span>
+          </span>
+          {groupLabel && <GroupLabel name={groupLabel} />}
         </span>
         <ChevronDown className={cn('size-4 shrink-0 transition-transform', open && 'rotate-180')} aria-hidden="true" />
       </button>
@@ -225,21 +242,26 @@ function SettlementRow({
 
 /**
  * A month-grouped list of Expenses and Settlements. `effectFor` decides the
- * amount each Expense row shows; leaving out the edit callbacks makes rows read-only.
+ * amount each Expense row shows; `showGroup` tags each row with its Group;
+ * leaving out the edit callbacks makes rows read-only.
  */
 export function Timeline({
   data,
   months,
   effectFor,
+  showGroup = false,
   onEditExpense,
   onEditSettlement,
 }: {
   data: AppData
   months: TimelineMonth[]
   effectFor: (expense: Expense) => Effect
+  showGroup?: boolean
   onEditExpense?: (expense: Expense) => void
   onEditSettlement?: (settlement: Settlement) => void
 }) {
+  const groupLabel = (groupId: string) =>
+    showGroup ? (data.groups.find((g) => g.id === groupId)?.name ?? 'Unknown group') : undefined
   if (months.length === 0) {
     return <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No expenses yet.</p>
   }
@@ -258,10 +280,17 @@ export function Timeline({
                   data={data}
                   expense={item.record}
                   effect={effectFor(item.record)}
+                  groupLabel={groupLabel(item.record.groupId)}
                   onEdit={onEditExpense}
                 />
               ) : (
-                <SettlementRow key={item.record.id} data={data} settlement={item.record} onEdit={onEditSettlement} />
+                <SettlementRow
+                  key={item.record.id}
+                  data={data}
+                  settlement={item.record}
+                  groupLabel={groupLabel(item.record.groupId)}
+                  onEdit={onEditSettlement}
+                />
               ),
             )}
           </ul>

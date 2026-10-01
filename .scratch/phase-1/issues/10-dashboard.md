@@ -8,10 +8,10 @@ References: [spec](../spec.md) → Screens → Dashboard, Balance calculation (r
 
 **Status:** ready-for-agent
 
-- [ ] Three figures per rule 6: you owe, you get back, total balance (get back − owe).
-- [ ] Two lists: Friends you owe and Friends who owe you, non-zero Friend Balances only; each expands to its per-Group breakdown; each Friend entry navigates to that Friend's page.
-- [ ] A Friend whose Friend Balance nets to ₹0.00 appears in neither list, even with open offsetting Debts (rule 9).
-- [ ] Below the lists: each Group as a card showing your Group Balance; each card navigates to that Group's page.
-- [ ] When every figure is ₹0.00: an "all settled up" empty state with an Add expense button.
-- [ ] Add an expense from the Dashboard opens the dialog with no Group selected; the user chooses a Group first.
-- [ ] Unit test: the figures are netted per Friend and can differ from summing the Group cards.
+- [x] Three figures per rule 6: you owe, you get back, total balance (get back − owe).
+- [x] Two lists: Friends you owe and Friends who owe you, non-zero Friend Balances only; each expands to its per-Group breakdown; each Friend entry navigates to that Friend's page.
+- [x] A Friend whose Friend Balance nets to ₹0.00 appears in neither list, even with open offsetting Debts (rule 9).
+- [x] Below the lists: each Group as a card showing your Group Balance; each card navigates to that Group's page.
+- [x] When every figure is ₹0.00: an "all settled up" empty state with an Add expense button.
+- [x] Add an expense from the Dashboard opens the dialog with no Group selected; the user chooses a Group first.
+- [x] Unit test: the figures are netted per Friend and can differ from summing the Group cards.

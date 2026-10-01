@@ -8,7 +8,7 @@ References: [spec](../spec.md) → Layout and navigation, Balance calculation (r
 
 **Status:** ready-for-agent
 
-- [ ] Each Group entry shows your Group Balance; each Friend entry shows your Friend Balance, in owe / get back colours with the amount.
-- [ ] The amount is hidden when Settled Up (rule 8).
-- [ ] A Friend with a net-zero Friend Balance but open Debts shows ₹0.00 (rule 9).
-- [ ] Hints update immediately after any change.
+- [x] Each Group entry shows your Group Balance; each Friend entry shows your Friend Balance, in owe / get back colours with the amount.
+- [x] The amount is hidden when Settled Up (rule 8).
+- [x] A Friend with a net-zero Friend Balance but open Debts shows ₹0.00 (rule 9).
+- [x] Hints update immediately after any change.

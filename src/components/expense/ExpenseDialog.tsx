@@ -332,9 +332,42 @@ function ExpenseForm({
   )
 }
 
+/** Opened without a Group: the user chooses one first, then the full form appears. */
+function ChooseGroupFirst({ groups, onChoose, onCancel }: { groups: Group[]; onChoose: (group: Group) => void; onCancel: () => void }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="expense-group">Group</Label>
+        <Select value="" onValueChange={(groupId) => onChoose(groups.find((g) => g.id === groupId)!)}>
+          <SelectTrigger id="expense-group" className="w-full">
+            <SelectValue placeholder="Choose a group" />
+          </SelectTrigger>
+          <SelectContent>
+            {groups.map((g) => (
+              <SelectItem key={g.id} value={g.id}>
+                {g.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-sm text-muted-foreground">Every expense belongs to a group. Choose one to continue.</p>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="button" disabled>
+          Save
+        </Button>
+      </DialogFooter>
+    </div>
+  )
+}
+
 /**
- * Adds a new Expense, or edits `expense` when one is given. `groupOptions`
- * limits the Group picker (all Groups by default) and `tickedIds` who starts ticked.
+ * Adds a new Expense, or edits `expense` when one is given. Without a `group`
+ * the user chooses one first. `groupOptions` limits the Group picker (all
+ * Groups by default) and `tickedIds` who starts ticked.
  */
 export function ExpenseDialog({
   open,
@@ -346,14 +379,20 @@ export function ExpenseDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  group: Group
+  group?: Group
   groupOptions?: Group[]
   tickedIds?: PersonId[]
   expense?: Expense
 }) {
   const data = useAppStore((state) => state.data)
+  const [chosenGroup, setChosenGroup] = useState<Group | null>(null)
+  const startGroup = group ?? chosenGroup
+  const close = () => {
+    onOpenChange(false)
+    setChosenGroup(null)
+  }
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
       <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{expense ? 'Edit expense' : 'Add an expense'}</DialogTitle>
@@ -362,16 +401,19 @@ export function ExpenseDialog({
           </DialogDescription>
         </DialogHeader>
         {/* Remounted on every open, so each expense starts from a fresh draft. */}
-        {open && (
-          <ExpenseForm
-            data={data}
-            initialGroup={group}
-            groupOptions={groupOptions ?? data.groups}
-            tickedIds={tickedIds}
-            expense={expense}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        {open &&
+          (startGroup ? (
+            <ExpenseForm
+              data={data}
+              initialGroup={startGroup}
+              groupOptions={groupOptions ?? data.groups}
+              tickedIds={tickedIds}
+              expense={expense}
+              onDone={close}
+            />
+          ) : (
+            <ChooseGroupFirst groups={groupOptions ?? data.groups} onChoose={setChosenGroup} onCancel={close} />
+          ))}
       </DialogContent>
     </Dialog>
   )
