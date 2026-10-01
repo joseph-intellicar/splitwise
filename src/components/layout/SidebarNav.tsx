@@ -5,6 +5,48 @@ import { Link, NavLink } from 'react-router'
 import { Logo } from '@/components/Logo'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { useAppStore } from '@/store/appStore'
+
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'block truncate rounded-md px-3 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+    isActive && 'bg-sidebar-accent font-medium text-sidebar-primary',
+  )
+
+/** Alphabetical, narrowed to names containing the filter text. */
+function filterAndSort<T extends { name: string }>(items: T[], filter: string): T[] {
+  const needle = filter.trim().toLocaleLowerCase()
+  return items
+    .filter((item) => item.name.toLocaleLowerCase().includes(needle))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function EntryList({
+  items,
+  hasAny,
+  emptyText,
+  hrefFor,
+}: {
+  items: { id: string; name: string }[]
+  hasAny: boolean
+  emptyText: string
+  hrefFor: (id: string) => string
+}) {
+  if (items.length === 0) {
+    return <p className="px-3 py-1 text-sm text-muted-foreground">{hasAny ? 'No matches' : emptyText}</p>
+  }
+  return (
+    <ul className="flex flex-col">
+      {items.map((item) => (
+        <li key={item.id}>
+          <NavLink to={hrefFor(item.id)} className={linkClass}>
+            {item.name}
+          </NavLink>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 function NavItem({ to, icon, children }: { to: string; icon: ReactNode; children: ReactNode }) {
   return (
@@ -44,6 +86,8 @@ function SectionHeading({ title, addLabel }: { title: string; addLabel: string }
 
 export function SidebarNav() {
   const [filter, setFilter] = useState('')
+  const groups = useAppStore((state) => state.data.groups)
+  const friends = useAppStore((state) => state.data.friends)
 
   return (
     <div className="flex h-full flex-col gap-2 p-3">
@@ -76,10 +120,20 @@ export function SidebarNav() {
         </div>
 
         <SectionHeading title="Groups" addLabel="Add group" />
-        <p className="px-3 py-1 text-sm text-muted-foreground">No groups yet</p>
+        <EntryList
+          items={filterAndSort(groups, filter)}
+          hasAny={groups.length > 0}
+          emptyText="No groups yet"
+          hrefFor={(id) => `/groups/${id}`}
+        />
 
         <SectionHeading title="Friends" addLabel="Add friend" />
-        <p className="px-3 py-1 text-sm text-muted-foreground">No friends yet</p>
+        <EntryList
+          items={filterAndSort(friends, filter)}
+          hasAny={friends.length > 0}
+          emptyText="No friends yet"
+          hrefFor={(id) => `/friends/${id}`}
+        />
       </nav>
 
       <div className="border-t border-sidebar-border pt-2">

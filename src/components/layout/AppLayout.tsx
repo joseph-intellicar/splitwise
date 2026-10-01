@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router'
 
 import { Logo } from '@/components/Logo'
+import { Toaster } from '@/components/Toaster'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 
@@ -45,6 +46,7 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+      <Toaster />
     </div>
   )
 }
