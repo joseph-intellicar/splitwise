@@ -37,7 +37,7 @@ export function AppLayout() {
         >
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <SheetDescription className="sr-only">Main navigation</SheetDescription>
-          <SidebarNav />
+          <SidebarNav onNavigate={() => setMenuOpen(false)} />
         </SheetContent>
       </Sheet>
 

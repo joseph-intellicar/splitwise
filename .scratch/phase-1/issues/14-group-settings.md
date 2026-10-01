@@ -8,8 +8,8 @@ References: [spec](../spec.md) → Screens → Group page, Rules → Groups and 
 
 **Status:** ready-for-agent
 
-- [ ] The Group page settings control opens group settings.
-- [ ] Name (required) and Group Type can be changed; the header, sidebar and Dashboard card reflect changes immediately.
-- [ ] Members can be added from existing Friends or by typing a new name (creating a Friend); new members go to the end of member order.
-- [ ] Adding a member doesn't change existing Expenses' Shares.
-- [ ] Changes show a short toast.
+- [x] The Group page settings control opens group settings.
+- [x] Name (required) and Group Type can be changed; the header, sidebar and Dashboard card reflect changes immediately.
+- [x] Members can be added from existing Friends or by typing a new name (creating a Friend); new members go to the end of member order.
+- [x] Adding a member doesn't change existing Expenses' Shares.
+- [x] Changes show a short toast.

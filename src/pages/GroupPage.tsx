@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 
 import { ExpenseDialog } from '@/components/expense/ExpenseDialog'
 import { GroupBalances } from '@/components/group/GroupBalances'
+import { GroupSettingsDialog } from '@/components/groups/GroupSettingsDialog'
 import { GroupTypeIcon } from '@/components/icons'
 import { Timeline } from '@/components/Timeline'
 import { SettleUpDialog } from '@/components/settlement/SettleUpDialog'
@@ -21,6 +22,7 @@ export function GroupPage() {
   const group = data.groups.find((g) => g.id === groupId)
   const [addingExpense, setAddingExpense] = useState(false)
   const [settlingUp, setSettlingUp] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   // Records being edited are kept after closing so the dialogs don't flip to "Add" while they animate out.
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [editing, setEditing] = useState(false)
@@ -51,8 +53,7 @@ export function GroupPage() {
           <Button variant="outline" onClick={() => setSettlingUp(true)}>
             Settle up
           </Button>
-          {/* Group settings are wired up by their own ticket. */}
-          <Button variant="ghost" size="icon" aria-label="Group settings" disabled>
+          <Button variant="ghost" size="icon" aria-label="Group settings" onClick={() => setShowSettings(true)}>
             <Settings aria-hidden="true" />
           </Button>
         </div>
@@ -82,6 +83,7 @@ export function GroupPage() {
         expense={editingExpense ?? undefined}
       />
       <SettleUpDialog open={settlingUp} onOpenChange={setSettlingUp} group={group} />
+      <GroupSettingsDialog open={showSettings} onOpenChange={setShowSettings} group={group} />
       <SettleUpDialog
         open={editingPayment}
         onOpenChange={setEditingPayment}

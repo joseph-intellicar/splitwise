@@ -2,6 +2,7 @@ import { LayoutDashboard, ListOrdered, Plus, Settings } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link, NavLink } from 'react-router'
 
+import { CreateGroupDialog } from '@/components/groups/CreateGroupDialog'
 import { Logo } from '@/components/Logo'
 import { Input } from '@/components/ui/input'
 import { groupBalance, isMemberSettledUp } from '@/domain/balances'
@@ -91,16 +92,17 @@ function NavItem({ to, icon, children }: { to: string; icon: ReactNode; children
   )
 }
 
-function SectionHeading({ title, addLabel }: { title: string; addLabel: string }) {
+function SectionHeading({ title, addLabel, onAdd }: { title: string; addLabel: string; onAdd?: () => void }) {
   return (
     <div className="flex items-center justify-between px-3 pt-4 pb-1">
       <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{title}</h2>
-      {/* Wired up by the create-group and add-friend tickets. */}
+      {/* Disabled until its ticket wires it up. */}
       <button
         type="button"
-        disabled
+        disabled={!onAdd}
+        onClick={onAdd}
         aria-label={addLabel}
-        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground disabled:opacity-60"
+        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60 disabled:hover:bg-transparent"
       >
         <Plus className="size-3.5" aria-hidden="true" />
         add
@@ -109,8 +111,10 @@ function SectionHeading({ title, addLabel }: { title: string; addLabel: string }
   )
 }
 
-export function SidebarNav() {
+/** `onNavigate` lets the slide-out menu close when an action takes the user to another page. */
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const [filter, setFilter] = useState('')
+  const [creatingGroup, setCreatingGroup] = useState(false)
   const data = useAppStore((state) => state.data)
   const { groups, friends } = data
   // Settled Up (no open Debt) hides the hint; a net ₹0 with open Debts still shows ₹0.00.
@@ -149,7 +153,7 @@ export function SidebarNav() {
           />
         </div>
 
-        <SectionHeading title="Groups" addLabel="Add group" />
+        <SectionHeading title="Groups" addLabel="Add group" onAdd={() => setCreatingGroup(true)} />
         <EntryList
           items={filterAndSort(groups, filter)}
           hasAny={groups.length > 0}
@@ -173,6 +177,8 @@ export function SidebarNav() {
           Settings
         </NavItem>
       </div>
+
+      <CreateGroupDialog open={creatingGroup} onOpenChange={setCreatingGroup} onCreated={onNavigate} />
     </div>
   )
 }

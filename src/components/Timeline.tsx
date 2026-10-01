@@ -1,4 +1,4 @@
-import { Banknote, ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { Banknote, ChevronDown, Lock, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { categoryLabel } from '@/domain/categories'
 import type { Effect } from '@/domain/balances'
+import { formerMembersIn, lockHint } from '@/domain/membership'
 import { formatPaise } from '@/domain/money'
 import { personName, shortName } from '@/domain/people'
 import type { TimelineMonth } from '@/domain/timeline'
@@ -68,6 +69,25 @@ function ConfirmDeleteButton({ title, description, onConfirm }: { title: string;
 const longDate = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 
+/**
+ * Records involving a Former Member are read-only and can't be deleted until
+ * they're re-added; this says why in place of the actions.
+ */
+function lockFor(data: AppData, record: Expense | Settlement): string | null {
+  const group = data.groups.find((g) => g.id === record.groupId)
+  const former = group ? formerMembersIn(group, record) : []
+  return former.length > 0 ? lockHint(data, former) : null
+}
+
+function LockNotice({ text }: { text: string }) {
+  return (
+    <p className="mt-4 flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+      <Lock className="size-4 shrink-0" aria-hidden="true" />
+      {text}
+    </p>
+  )
+}
+
 /** A small tag naming the Group a row belongs to. */
 function GroupLabel({ name }: { name: string }) {
   return (
@@ -89,6 +109,7 @@ function ExpenseRow({
   onEdit?: (expense: Expense) => void
 }) {
   const deleteExpense = useAppStore((state) => state.deleteExpense)
+  const lock = lockFor(data, expense)
   const [open, setOpen] = useState(false)
   const detailsId = `expense-${expense.id}`
 
@@ -145,7 +166,8 @@ function ExpenseRow({
               </>
             )}
           </dl>
-          {onEdit && (
+          {onEdit && lock && <LockNotice text={lock} />}
+          {onEdit && !lock && (
             <div className="mt-4 flex gap-2">
               <Button variant="outline" size="sm" onClick={() => onEdit(expense)}>
                 <Pencil aria-hidden="true" />
@@ -179,6 +201,7 @@ function SettlementRow({
   onEdit?: (settlement: Settlement) => void
 }) {
   const deleteSettlement = useAppStore((state) => state.deleteSettlement)
+  const lock = lockFor(data, settlement)
   const [open, setOpen] = useState(false)
   const detailsId = `settlement-${settlement.id}`
   const to = shortName(data, settlement.toId)
@@ -218,7 +241,8 @@ function SettlementRow({
             <dt className="text-muted-foreground">Date</dt>
             <dd>{longDate(settlement.date)}</dd>
           </dl>
-          {onEdit && (
+          {onEdit && lock && <LockNotice text={lock} />}
+          {onEdit && !lock && (
             <div className="mt-4 flex gap-2">
               <Button variant="outline" size="sm" onClick={() => onEdit(settlement)}>
                 <Pencil aria-hidden="true" />

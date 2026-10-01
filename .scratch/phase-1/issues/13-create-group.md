@@ -8,8 +8,8 @@ References: [spec](../spec.md) → Rules → Groups and members, Rules → Frien
 
 **Status:** ready-for-agent
 
-- [ ] "+ add" next to Groups opens a create-group dialog.
-- [ ] Name is required; Group Type is one of Trip / Home / Couple / Other and only sets the icon; no custom image.
-- [ ] Members can be picked from existing Friends or added by typing a new name, which creates a new Friend (optional email or phone, display only).
-- [ ] The Current User is always a member and is first in member order; others follow in the order added.
-- [ ] After saving, the new Group appears in the sidebar (alphabetical) and the app navigates directly to its Group page (spec → Rules → Groups and members); a toast confirms.
+- [x] "+ add" next to Groups opens a create-group dialog.
+- [x] Name is required; Group Type is one of Trip / Home / Couple / Other and only sets the icon; no custom image.
+- [x] Members can be picked from existing Friends or added by typing a new name, which creates a new Friend (optional email or phone, display only).
+- [x] The Current User is always a member and is first in member order; others follow in the order added.
+- [x] After saving, the new Group appears in the sidebar (alphabetical) and the app navigates directly to its Group page (spec → Rules → Groups and members); a toast confirms.
