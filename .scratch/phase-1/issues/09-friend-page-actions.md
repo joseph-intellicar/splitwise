@@ -8,7 +8,7 @@ References: [spec](../spec.md) → Screens → Add / edit expense, Screens → S
 
 **Status:** ready-for-agent
 
-- [ ] Add an expense opens the dialog with a Group picker listing only Groups shared with this Friend; the most recently active shared Group is selected, with that Friend ticked.
-- [ ] Settle up opens the dialog with a picker of shared Groups, each showing its amount pre-filled; it defaults to the largest amount you owe, then the largest you get back.
-- [ ] After saving, the Friend page balance card, breakdown and timeline update immediately.
-- [ ] A Friend with no shared Group has no way to add an Expense.
+- [x] Add an expense opens the dialog with a Group picker listing only Groups shared with this Friend; the most recently active shared Group is selected, with that Friend ticked.
+- [x] Settle up opens the dialog with a picker of shared Groups, each showing its amount pre-filled; it defaults to the largest amount you owe, then the largest you get back.
+- [x] After saving, the Friend page balance card, breakdown and timeline update immediately.
+- [x] A Friend with no shared Group has no way to add an Expense.

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { categoryLabel } from '@/domain/categories'
-import { expenseEffect } from '@/domain/balances'
+import type { Effect } from '@/domain/balances'
 import { formatPaise } from '@/domain/money'
 import { personName, shortName } from '@/domain/people'
 import type { TimelineMonth } from '@/domain/timeline'
@@ -68,7 +68,17 @@ function ConfirmDeleteButton({ title, description, onConfirm }: { title: string;
 const longDate = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 
-function ExpenseRow({ data, expense, onEdit }: { data: AppData; expense: Expense; onEdit: (expense: Expense) => void }) {
+function ExpenseRow({
+  data,
+  expense,
+  effect,
+  onEdit,
+}: {
+  data: AppData
+  expense: Expense
+  effect: Effect
+  onEdit?: (expense: Expense) => void
+}) {
   const deleteExpense = useAppStore((state) => state.deleteExpense)
   const [open, setOpen] = useState(false)
   const detailsId = `expense-${expense.id}`
@@ -90,7 +100,7 @@ function ExpenseRow({ data, expense, onEdit }: { data: AppData; expense: Expense
             {shortName(data, expense.payerId)} paid {formatPaise(expense.amount)}
           </span>
         </span>
-        <EffectLabel effect={expenseEffect(expense)} />
+        <EffectLabel effect={effect} />
         <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden="true" />
       </button>
 
@@ -123,20 +133,22 @@ function ExpenseRow({ data, expense, onEdit }: { data: AppData; expense: Expense
               </>
             )}
           </dl>
-          <div className="mt-4 flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onEdit(expense)}>
-              <Pencil aria-hidden="true" />
-              Edit
-            </Button>
-            <ConfirmDeleteButton
-              title={`Delete “${expense.description}”?`}
-              description="This removes the expense for everyone in the group and updates their balances. It can't be undone."
-              onConfirm={() => {
-                deleteExpense(expense.id)
-                toast.success('Expense deleted')
-              }}
-            />
-          </div>
+          {onEdit && (
+            <div className="mt-4 flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => onEdit(expense)}>
+                <Pencil aria-hidden="true" />
+                Edit
+              </Button>
+              <ConfirmDeleteButton
+                title={`Delete “${expense.description}”?`}
+                description="This removes the expense for everyone in the group and updates their balances. It can't be undone."
+                onConfirm={() => {
+                  deleteExpense(expense.id)
+                  toast.success('Expense deleted')
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
     </li>
@@ -150,7 +162,7 @@ function SettlementRow({
 }: {
   data: AppData
   settlement: Settlement
-  onEdit: (settlement: Settlement) => void
+  onEdit?: (settlement: Settlement) => void
 }) {
   const deleteSettlement = useAppStore((state) => state.deleteSettlement)
   const [open, setOpen] = useState(false)
@@ -189,37 +201,44 @@ function SettlementRow({
             <dt className="text-muted-foreground">Date</dt>
             <dd>{longDate(settlement.date)}</dd>
           </dl>
-          <div className="mt-4 flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onEdit(settlement)}>
-              <Pencil aria-hidden="true" />
-              Edit
-            </Button>
-            <ConfirmDeleteButton
-              title="Delete this payment?"
-              description={`${summary} ${formatPaise(settlement.amount)}. Deleting it brings back the debt it paid off. It can't be undone.`}
-              onConfirm={() => {
-                deleteSettlement(settlement.id)
-                toast.success('Payment deleted')
-              }}
-            />
-          </div>
+          {onEdit && (
+            <div className="mt-4 flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => onEdit(settlement)}>
+                <Pencil aria-hidden="true" />
+                Edit
+              </Button>
+              <ConfirmDeleteButton
+                title="Delete this payment?"
+                description={`${summary} ${formatPaise(settlement.amount)}. Deleting it brings back the debt it paid off. It can't be undone.`}
+                onConfirm={() => {
+                  deleteSettlement(settlement.id)
+                  toast.success('Payment deleted')
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
     </li>
   )
 }
 
-/** The full history, never folded, grouped by month. */
-export function GroupTimeline({
+/**
+ * A month-grouped list of Expenses and Settlements. `effectFor` decides the
+ * amount each Expense row shows; leaving out the edit callbacks makes rows read-only.
+ */
+export function Timeline({
   data,
   months,
+  effectFor,
   onEditExpense,
   onEditSettlement,
 }: {
   data: AppData
   months: TimelineMonth[]
-  onEditExpense: (expense: Expense) => void
-  onEditSettlement: (settlement: Settlement) => void
+  effectFor: (expense: Expense) => Effect
+  onEditExpense?: (expense: Expense) => void
+  onEditSettlement?: (settlement: Settlement) => void
 }) {
   if (months.length === 0) {
     return <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No expenses yet.</p>
@@ -234,7 +253,13 @@ export function GroupTimeline({
           <ul className="flex flex-col gap-2">
             {month.items.map((item) =>
               item.kind === 'expense' ? (
-                <ExpenseRow key={item.record.id} data={data} expense={item.record} onEdit={onEditExpense} />
+                <ExpenseRow
+                  key={item.record.id}
+                  data={data}
+                  expense={item.record}
+                  effect={effectFor(item.record)}
+                  onEdit={onEditExpense}
+                />
               ) : (
                 <SettlementRow key={item.record.id} data={data} settlement={item.record} onEdit={onEditSettlement} />
               ),

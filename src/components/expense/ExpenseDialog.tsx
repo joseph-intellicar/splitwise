@@ -27,7 +27,9 @@ import type { AppData, Expense, Group, PersonId } from '@/domain/types'
 import { CURRENT_USER_ID } from '@/domain/types'
 import { useAppStore } from '@/store/appStore'
 
-function newDraft(group: Group): ExpenseDraft {
+/** A fresh draft; `tickedIds` limits who starts ticked (everyone by default). */
+function newDraft(group: Group, tickedIds?: PersonId[]): ExpenseDraft {
+  const ticked = tickedIds ? group.memberIds.filter((id) => tickedIds.includes(id)) : [...group.memberIds]
   return {
     groupId: group.id,
     description: '',
@@ -35,10 +37,10 @@ function newDraft(group: Group): ExpenseDraft {
     categoryId: DEFAULT_CATEGORY_ID,
     date: todayIso(),
     notes: '',
-    payerId: group.memberIds.includes(CURRENT_USER_ID) ? CURRENT_USER_ID : group.memberIds[0],
-    involvedIds: [...group.memberIds],
+    payerId: ticked.includes(CURRENT_USER_ID) ? CURRENT_USER_ID : (ticked[0] ?? null),
+    involvedIds: ticked,
     splitMethod: 'equal',
-    splitIds: [...group.memberIds],
+    splitIds: [...ticked],
     exactTexts: {},
   }
 }
@@ -51,17 +53,21 @@ function pickerName(data: AppData, personId: PersonId) {
 function ExpenseForm({
   data,
   initialGroup,
+  groupOptions,
+  tickedIds,
   expense,
   onDone,
 }: {
   data: AppData
   initialGroup: Group
+  groupOptions: Group[]
+  tickedIds?: PersonId[]
   expense?: Expense
   onDone: () => void
 }) {
   const addExpense = useAppStore((state) => state.addExpense)
   const updateExpense = useAppStore((state) => state.updateExpense)
-  const [draft, setDraft] = useState(() => (expense ? draftFromExpense(expense) : newDraft(initialGroup)))
+  const [draft, setDraft] = useState(() => (expense ? draftFromExpense(expense) : newDraft(initialGroup, tickedIds)))
   const group = data.groups.find((g) => g.id === draft.groupId) ?? initialGroup
   const today = todayIso()
   const shares = draftShares(draft, group)
@@ -110,12 +116,13 @@ function ExpenseForm({
         <Select
           value={draft.groupId}
           disabled={!!expense}
-          onValueChange={(groupId) => setDraft(newDraft(data.groups.find((g) => g.id === groupId)!))}>
+          onValueChange={(groupId) => setDraft(newDraft(groupOptions.find((g) => g.id === groupId)!, tickedIds))}
+        >
           <SelectTrigger id="expense-group" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {data.groups.map((g) => (
+            {groupOptions.map((g) => (
               <SelectItem key={g.id} value={g.id}>
                 {g.name}
               </SelectItem>
@@ -325,16 +332,23 @@ function ExpenseForm({
   )
 }
 
-/** Adds a new Expense, or edits `expense` when one is given. */
+/**
+ * Adds a new Expense, or edits `expense` when one is given. `groupOptions`
+ * limits the Group picker (all Groups by default) and `tickedIds` who starts ticked.
+ */
 export function ExpenseDialog({
   open,
   onOpenChange,
   group,
+  groupOptions,
+  tickedIds,
   expense,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   group: Group
+  groupOptions?: Group[]
+  tickedIds?: PersonId[]
   expense?: Expense
 }) {
   const data = useAppStore((state) => state.data)
@@ -348,7 +362,16 @@ export function ExpenseDialog({
           </DialogDescription>
         </DialogHeader>
         {/* Remounted on every open, so each expense starts from a fresh draft. */}
-        {open && <ExpenseForm data={data} initialGroup={group} expense={expense} onDone={() => onOpenChange(false)} />}
+        {open && (
+          <ExpenseForm
+            data={data}
+            initialGroup={group}
+            groupOptions={groupOptions ?? data.groups}
+            tickedIds={tickedIds}
+            expense={expense}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

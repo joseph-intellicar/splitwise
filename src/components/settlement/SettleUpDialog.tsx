@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Debt } from '@/domain/balances'
 import { todayIso } from '@/domain/expenseDraft'
+import { settleUpDefault, type GroupTerm } from '@/domain/friendBalances'
 import { formatPaise } from '@/domain/money'
 import { personName, shortName } from '@/domain/people'
 import {
@@ -23,6 +24,22 @@ import type { AppData, Group, PersonId, Settlement } from '@/domain/types'
 import { CURRENT_USER_ID } from '@/domain/types'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/appStore'
+
+/** A draft paying back your whole Debt with `friendId` in one Group, or an empty one if there's none. */
+function draftForTerm(term: GroupTerm, friendId: PersonId, date: string): SettlementDraft {
+  const amount = Math.abs(term.amount)
+  if (term.amount === 0) return { groupId: term.group.id, fromId: null, toId: null, amountText: '', date }
+  const debt =
+    term.amount < 0
+      ? { debtorId: CURRENT_USER_ID, creditorId: friendId, amount }
+      : { debtorId: friendId, creditorId: CURRENT_USER_ID, amount }
+  return draftForDebt(term.group.id, debt, date)
+}
+
+function termLabel(term: GroupTerm) {
+  if (term.amount === 0) return `${term.group.name} · settled up`
+  return `${term.group.name} · ${term.amount > 0 ? 'you get back' : 'you owe'} ${formatPaise(term.amount)}`
+}
 
 /** "You owe Priya ₹400.00" / "Arjun owes you ₹200.00" */
 function suggestionText(data: AppData, debt: Debt) {
@@ -69,22 +86,29 @@ function MemberSelect({
 
 function SettlementForm({
   data,
-  group,
+  initialGroup,
+  friend,
   settlement,
   onDone,
 }: {
   data: AppData
-  group: Group
+  initialGroup: Group
+  friend?: FriendChoice
   settlement?: Settlement
   onDone: () => void
 }) {
   const addSettlement = useAppStore((state) => state.addSettlement)
   const updateSettlement = useAppStore((state) => state.updateSettlement)
   const today = todayIso()
-  const [draft, setDraft] = useState<SettlementDraft>(() =>
-    settlement ? draftFromSettlement(settlement) : newSettlementDraft(data, group.id, today),
-  )
-  const suggestions = settlement ? [] : settleUpSuggestions(data, group.id)
+  const [draft, setDraft] = useState<SettlementDraft>(() => {
+    if (settlement) return draftFromSettlement(settlement)
+    const term = friend && settleUpDefault(friend.terms)
+    if (friend && term) return draftForTerm(term, friend.friendId, today)
+    return newSettlementDraft(data, initialGroup.id, today)
+  })
+  const group = data.groups.find((g) => g.id === draft.groupId) ?? initialGroup
+  // From a Friend page the Group picker replaces the suggestion chips.
+  const suggestions = settlement || friend ? [] : settleUpSuggestions(data, group.id)
   const update = (changes: Partial<SettlementDraft>) => setDraft((d) => ({ ...d, ...changes }))
   const isSuggestion = (debt: Debt) =>
     draft.fromId === debt.debtorId && draft.toId === debt.creditorId
@@ -105,7 +129,30 @@ function SettlementForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      {!settlement && (
+      {friend && !settlement && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="settlement-group">Group</Label>
+          <Select
+            value={draft.groupId}
+            onValueChange={(groupId) =>
+              setDraft(draftForTerm(friend.terms.find((t) => t.group.id === groupId)!, friend.friendId, draft.date))
+            }
+          >
+            <SelectTrigger id="settlement-group" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {friend.terms.map((term) => (
+                <SelectItem key={term.group.id} value={term.group.id}>
+                  {termLabel(term)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {!settlement && !friend && (
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">Your open debts in {group.name}</legend>
           <div className="flex flex-wrap gap-2">
@@ -210,16 +257,27 @@ function SettlementForm({
   )
 }
 
-/** Records a new Settlement in `group`, or edits `settlement` when one is given. */
+/** Settling up from a Friend page: your amount with them in each Group where they're a current member. */
+export interface FriendChoice {
+  friendId: PersonId
+  terms: GroupTerm[]
+}
+
+/**
+ * Records a new Settlement in `group`, or edits `settlement` when one is given.
+ * With `friend`, a Group picker offers each shared Group with its amount pre-filled.
+ */
 export function SettleUpDialog({
   open,
   onOpenChange,
   group,
+  friend,
   settlement,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   group: Group
+  friend?: FriendChoice
   settlement?: Settlement
 }) {
   const data = useAppStore((state) => state.data)
@@ -231,11 +289,21 @@ export function SettleUpDialog({
           <DialogDescription>
             {settlement
               ? `A payment in ${group.name}; the group stays the same.`
-              : `Record a payment between two people in ${group.name}.`}
+              : friend
+                ? `Record a payment between you and ${shortName(data, friend.friendId)}.`
+                : `Record a payment between two people in ${group.name}.`}
           </DialogDescription>
         </DialogHeader>
         {/* Remounted on every open, so the pre-fill reflects the latest balances. */}
-        {open && <SettlementForm data={data} group={group} settlement={settlement} onDone={() => onOpenChange(false)} />}
+        {open && (
+          <SettlementForm
+            data={data}
+            initialGroup={group}
+            friend={friend}
+            settlement={settlement}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

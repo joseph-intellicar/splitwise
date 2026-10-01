@@ -4,11 +4,11 @@ import { useParams } from 'react-router'
 
 import { ExpenseDialog } from '@/components/expense/ExpenseDialog'
 import { GroupBalances } from '@/components/group/GroupBalances'
-import { GroupTimeline } from '@/components/group/GroupTimeline'
 import { GroupTypeIcon } from '@/components/icons'
+import { Timeline } from '@/components/Timeline'
 import { SettleUpDialog } from '@/components/settlement/SettleUpDialog'
 import { Button } from '@/components/ui/button'
-import { groupDebts } from '@/domain/balances'
+import { expenseEffect, groupDebts } from '@/domain/balances'
 import { groupTimeline } from '@/domain/timeline'
 import type { Expense, Settlement } from '@/domain/types'
 import { useAppStore } from '@/store/appStore'
@@ -60,9 +60,10 @@ export function GroupPage() {
 
       <GroupBalances data={data} group={group} debts={groupDebts(data, group.id)} />
 
-      <GroupTimeline
+      <Timeline
         data={data}
         months={groupTimeline(data, group.id)}
+        effectFor={expenseEffect}
         onEditExpense={(expense) => {
           setEditingExpense(expense)
           setEditing(true)
