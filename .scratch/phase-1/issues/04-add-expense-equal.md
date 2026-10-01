@@ -8,13 +8,13 @@ References: [spec](../spec.md) → Screens → Add / edit expense, Rules → Exp
 
 **Status:** ready-for-agent
 
-- [ ] "Add an expense" on the Group page opens the dialog with that Group selected and all current members ticked; Former Members aren't offered.
-- [ ] Field order: Group → who's involved → Description + large Amount → Category / date / notes row → "Paid by [you] and split [equally]" → live Shares.
-- [ ] Category defaults to "General" and is chosen by hand from a list with icons; date defaults to today and can't be in the future; notes are optional.
-- [ ] Payer defaults to the Current User and can be changed to any ticked person; "split [equally]" is the only Split Method offered in this ticket.
-- [ ] Equal split divides the Amount in paise among the ticked sharers; leftover paise go one each to the first sharers in Group member order; Shares always sum to the Amount (unit tested, including e.g. ₹100.00 ÷ 3).
-- [ ] Unticking someone from the split removes their Share but keeps them available as Payer.
-- [ ] Save is disabled until there's a Description, an Amount > ₹0.00, and at least one non-Payer with a Share > ₹0.00.
-- [ ] Saving persists the Expense, updates the Group page balances and timeline immediately, and shows a toast such as "Expense added to Goa Trip".
-- [ ] All fields are labelled and the dialog is fully keyboard operable.
-- [ ] Playwright test: add an equal-split Expense in a Group and see the row and balance card update.
+- [x] "Add an expense" on the Group page opens the dialog with that Group selected and all current members ticked; Former Members aren't offered.
+- [x] Field order: Group → who's involved → Description + large Amount → Category / date / notes row → "Paid by [you] and split [equally]" → live Shares.
+- [x] Category defaults to "General" and is chosen by hand from a list with icons; date defaults to today and can't be in the future; notes are optional.
+- [x] Payer defaults to the Current User and can be changed to any ticked person; "split [equally]" is the only Split Method offered in this ticket.
+- [x] Equal split divides the Amount in paise among the ticked sharers; leftover paise go one each to the first sharers in Group member order; Shares always sum to the Amount (unit tested, including e.g. ₹100.00 ÷ 3).
+- [x] Unticking someone from the split removes their Share but keeps them available as Payer.
+- [x] Save is disabled until there's a Description, an Amount > ₹0.00, and at least one non-Payer with a Share > ₹0.00.
+- [x] Saving persists the Expense, updates the Group page balances and timeline immediately, and shows a toast such as "Expense added to Goa Trip".
+- [x] All fields are labelled and the dialog is fully keyboard operable.
+- [x] Playwright test: add an equal-split Expense in a Group and see the row and balance card update.

@@ -1,6 +1,8 @@
 import { Plus, Settings } from 'lucide-react'
+import { useState } from 'react'
 import { useParams } from 'react-router'
 
+import { AddExpenseDialog } from '@/components/expense/AddExpenseDialog'
 import { GroupBalances } from '@/components/group/GroupBalances'
 import { GroupTimeline } from '@/components/group/GroupTimeline'
 import { GroupTypeIcon } from '@/components/icons'
@@ -15,6 +17,7 @@ export function GroupPage() {
   const { groupId } = useParams()
   const data = useAppStore((state) => state.data)
   const group = data.groups.find((g) => g.id === groupId)
+  const [addingExpense, setAddingExpense] = useState(false)
 
   if (!group) return <NotFoundPage />
 
@@ -32,12 +35,12 @@ export function GroupPage() {
             </p>
           </div>
         </div>
-        {/* Wired up by the add-expense, settle-up and group-settings tickets. */}
         <div className="flex items-center gap-2">
-          <Button disabled>
+          <Button onClick={() => setAddingExpense(true)}>
             <Plus aria-hidden="true" />
             Add an expense
           </Button>
+          {/* Settle up and group settings are wired up by their own tickets. */}
           <Button variant="outline" disabled>
             Settle up
           </Button>
@@ -50,6 +53,8 @@ export function GroupPage() {
       <GroupBalances data={data} group={group} debts={groupDebts(data, group.id)} />
 
       <GroupTimeline data={data} months={groupTimeline(data, group.id)} />
+
+      <AddExpenseDialog open={addingExpense} onOpenChange={setAddingExpense} group={group} />
     </div>
   )
 }
