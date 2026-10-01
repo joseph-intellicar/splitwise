@@ -1,11 +1,25 @@
-import { Check, Plus, UsersRound } from 'lucide-react'
+import { Check, Pencil, Plus, Trash2, UsersRound } from 'lucide-react'
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
+import { toast } from 'sonner'
 
 import { Avatar } from '@/components/Avatar'
 import { ExpenseDialog } from '@/components/expense/ExpenseDialog'
+import { FriendDialog } from '@/components/friends/FriendDialog'
+import { CreateGroupDialog } from '@/components/groups/CreateGroupDialog'
 import { SettleUpDialog } from '@/components/settlement/SettleUpDialog'
 import { Timeline } from '@/components/Timeline'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import type { Effect } from '@/domain/balances'
 import {
@@ -70,6 +84,63 @@ function BalanceCard({ friend, balance, terms }: { friend: Friend; balance: Pais
   )
 }
 
+/** Edit details, or remove the Friend: only possible when you share no Group (current or former). */
+function ManageFriend({ friend, blockedBy, onEdit }: { friend: Friend; blockedBy: string | null; onEdit: () => void }) {
+  const sharesGroups = blockedBy !== null
+  const removeFriend = useAppStore((state) => state.removeFriend)
+  const navigate = useNavigate()
+  const firstName = friend.name.split(' ')[0]
+
+  return (
+    <section aria-labelledby="manage-friend" className="rounded-2xl border p-5">
+      <h2 id="manage-friend" className="font-heading font-semibold">
+        Manage {firstName}
+      </h2>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="outline" onClick={onEdit}>
+          <Pencil aria-hidden="true" />
+          Edit details
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" disabled={sharesGroups} aria-describedby={sharesGroups ? 'remove-friend-hint' : undefined}>
+              <Trash2 aria-hidden="true" />
+              Remove friend
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove {friend.name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {firstName} will be removed from your friends. You can add them again later. This can't be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => {
+                  // Leave the page first, so it never renders a Friend who's gone.
+                  navigate('/')
+                  removeFriend(friend.id)
+                  toast.success(`${friend.name} removed from your friends`)
+                }}
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+      {sharesGroups && (
+        <p id="remove-friend-hint" className="mt-2 text-sm text-muted-foreground">
+          {blockedBy}
+        </p>
+      )}
+    </section>
+  )
+}
+
 export function FriendPage() {
   const { friendId } = useParams()
   const data = useAppStore((state) => state.data)
@@ -77,6 +148,8 @@ export function FriendPage() {
   const [showSettled, setShowSettled] = useState(false)
   const [addingExpense, setAddingExpense] = useState(false)
   const [settlingUp, setSettlingUp] = useState(false)
+  const [editingFriend, setEditingFriend] = useState(false)
+  const [creatingGroup, setCreatingGroup] = useState(false)
 
   if (!friend) return <NotFoundPage />
 
@@ -87,6 +160,13 @@ export function FriendPage() {
   const defaultGroup = mostRecentlyActive(data, groupsForActions)
   const actionTerms = terms.filter((t) => groupsForActions.includes(t.group))
   const settledUp = isSettledUpWithFriend(data, friend.id)
+  // Why Remove friend is unavailable, if it is: any shared Group, even one they've left, still shows them.
+  const formerOnly = terms.map((t) => t.group).filter((g) => !groupsForActions.includes(g))
+  const removeBlockedBy = !hasSharedGroups
+    ? null
+    : groupsForActions.length > 0
+      ? `You can't remove ${friend.name.split(' ')[0]} while you share a group.`
+      : `You can't remove ${friend.name.split(' ')[0]}: they're still on past expenses in ${formerOnly.map((g) => g.name).join(', ')}.`
   const contact = friend.email ?? friend.phone
   const firstName = friend.name.split(' ')[0]
   const effectFor = (expense: Expense): Effect => {
@@ -126,8 +206,7 @@ export function FriendPage() {
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             Expenses with {firstName} happen in a group. Create one together to start sharing costs.
           </p>
-          {/* Wired up by the managing-friends ticket. */}
-          <Button className="mt-6" disabled>
+          <Button className="mt-6" onClick={() => setCreatingGroup(true)}>
             Create group with {firstName}
           </Button>
         </section>
@@ -151,6 +230,14 @@ export function FriendPage() {
         </>
       )}
 
+      <ManageFriend friend={friend} blockedBy={removeBlockedBy} onEdit={() => setEditingFriend(true)} />
+
+      <FriendDialog open={editingFriend} onOpenChange={setEditingFriend} friend={friend} />
+      <CreateGroupDialog
+        open={creatingGroup}
+        onOpenChange={setCreatingGroup}
+        initialMembers={[{ kind: 'friend', friendId: friend.id }]}
+      />
       {defaultGroup && (
         <>
           <ExpenseDialog

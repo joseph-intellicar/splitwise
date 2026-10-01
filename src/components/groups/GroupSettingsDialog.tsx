@@ -1,11 +1,24 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
 import { Avatar } from '@/components/Avatar'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { isGroupSettledUp } from '@/domain/balances'
 import { openDebtsHint, removalBlockers, type NewMember } from '@/domain/membership'
 import { personName, shortName } from '@/domain/people'
 import type { AppData, Group, GroupType } from '@/domain/types'
@@ -150,7 +163,59 @@ function FormerMemberList({ data, group }: { data: AppData; group: Group }) {
   )
 }
 
-/** Rename a Group, change its type, and manage its members. */
+/** Deleting is only possible once every Debt in the Group is ₹0; net balances of ₹0 aren't enough. */
+function DeleteGroup({ data, group }: { data: AppData; group: Group }) {
+  const deleteGroup = useAppStore((state) => state.deleteGroup)
+  const navigate = useNavigate()
+  const settled = isGroupSettledUp(data, group.id)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            type="button"
+            variant="destructive"
+            className="self-start"
+            disabled={!settled}
+            aria-describedby={settled ? undefined : 'delete-group-hint'}
+          >
+            Delete group
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete “{group.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The group and all its expenses and payments will be removed. Its members stay your friends. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                // Leave the page first, so it never renders a Group that's gone.
+                navigate('/')
+                deleteGroup(group.id)
+                toast.success(`Group “${group.name}” deleted`)
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {!settled && (
+        <p id="delete-group-hint" className="text-sm text-muted-foreground">
+          Settle all balances in {group.name} before deleting it.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Rename a Group, change its type, manage its members, or delete it. */
 export function GroupSettingsDialog({
   open,
   onOpenChange,
@@ -186,6 +251,9 @@ export function GroupSettingsDialog({
             )}
             <Section title="Add members">
               <AddMembers data={data} group={group} />
+            </Section>
+            <Section title="Delete group">
+              <DeleteGroup data={data} group={group} />
             </Section>
           </div>
         )}

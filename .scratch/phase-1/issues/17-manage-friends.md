@@ -8,8 +8,8 @@ References: [spec](../spec.md) → Rules → Friends, Screens → Friend page; [
 
 **Status:** ready-for-agent
 
-- [ ] "+ add" next to Friends opens an add-friend dialog: name required, email and phone optional (display only).
-- [ ] Name, email and phone can be edited from the Friend page.
-- [ ] Remove Friend is available only when you share no Group with them, after a confirm dialog; otherwise the action stays visible but disabled, with a short explanation of why it's unavailable (spec → Rules → Friends).
-- [ ] "Create group with [name]" on a Friend with no shared Group opens the create-group dialog with that Friend pre-added.
-- [ ] Adds, edits and removals show a short toast and update the sidebar (alphabetical) immediately.
+- [x] "+ add" next to Friends opens an add-friend dialog: name required, email and phone optional (display only).
+- [x] Name, email and phone can be edited from the Friend page.
+- [x] Remove Friend is available only when you share no Group with them, after a confirm dialog; otherwise the action stays visible but disabled, with a short explanation of why it's unavailable (spec → Rules → Friends).
+- [x] "Create group with [name]" on a Friend with no shared Group opens the create-group dialog with that Friend pre-added.
+- [x] Adds, edits and removals show a short toast and update the sidebar (alphabetical) immediately.

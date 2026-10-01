@@ -8,14 +8,21 @@ import { CURRENT_USER_ID } from '@/domain/types'
 
 export const STORAGE_KEY = 'splitwise-data'
 
+/** Trims a Friend's details and drops blank optional ones. */
+function cleanFriend({ name, email, phone }: Omit<Friend, 'id'>): Omit<Friend, 'id'> {
+  return {
+    name: name.trim(),
+    ...(email?.trim() ? { email: email.trim() } : {}),
+    ...(phone?.trim() ? { phone: phone.trim() } : {}),
+  }
+}
+
 /** Turns NewMembers into Friend ids, creating Friends for new people. */
 function resolveMembers(members: NewMember[]): { ids: PersonId[]; created: Friend[] } {
   const created: Friend[] = []
   const ids = members.map((m) => {
     if (m.kind === 'friend') return m.friendId
-    const friend: Friend = { id: crypto.randomUUID(), name: m.name.trim() }
-    if (m.email?.trim()) friend.email = m.email.trim()
-    if (m.phone?.trim()) friend.phone = m.phone.trim()
+    const friend: Friend = { id: crypto.randomUUID(), ...cleanFriend(m) }
     created.push(friend)
     return friend.id
   })
@@ -38,6 +45,13 @@ interface AppState {
   addGroupMembers: (id: string, members: NewMember[]) => void
   /** Moves a member to Former Members. Callers check they're Settled Up first. */
   removeGroupMember: (id: string, personId: PersonId) => void
+  /** Removes a Group with all its Expenses and Settlements. Callers check it's Settled Up first. */
+  deleteGroup: (id: string) => void
+  /** Adds a Friend; returns their id. */
+  addFriend: (friend: Omit<Friend, 'id'>) => string
+  updateFriend: (id: string, details: Omit<Friend, 'id'>) => void
+  /** Removes a Friend. Callers check you share no Group with them first. */
+  removeFriend: (id: string) => void
   resetToSeed: () => void
 }
 
@@ -152,6 +166,29 @@ export const useAppStore = create<AppState>()(
             ),
           },
         })),
+      deleteGroup: (id) =>
+        set((state) => ({
+          data: {
+            ...state.data,
+            groups: state.data.groups.filter((g) => g.id !== id),
+            expenses: state.data.expenses.filter((e) => e.groupId !== id),
+            settlements: state.data.settlements.filter((s) => s.groupId !== id),
+          },
+        })),
+      addFriend: (friend) => {
+        const id = crypto.randomUUID()
+        set((state) => ({ data: { ...state.data, friends: [...state.data.friends, { id, ...cleanFriend(friend) }] } }))
+        return id
+      },
+      updateFriend: (id, details) =>
+        set((state) => ({
+          data: {
+            ...state.data,
+            friends: state.data.friends.map((f) => (f.id === id ? { id, ...cleanFriend(details) } : f)),
+          },
+        })),
+      removeFriend: (id) =>
+        set((state) => ({ data: { ...state.data, friends: state.data.friends.filter((f) => f.id !== id) } })),
       resetToSeed: () => set({ data: createSeedData() }),
     }),
     {
